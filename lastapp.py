@@ -13,15 +13,35 @@ import numpy as np
 import face_recognition
 import util2
 
+# Color Palette
+BG_COLOR_MAIN = "#2C3E50"
+BG_COLOR_CONTROL_PANEL = "#34495E"
+BG_COLOR_WEBCAM_FRAME = "white" # For webcam_frame background
+BUTTON_COLOR_PRIMARY = "#27AE60" # Login, Accept
+BUTTON_COLOR_SECONDARY = "#C0392B" # Logout, Try Again
+BUTTON_COLOR_TERTIARY = "#5D6D7E" # Register New User (darkened for better contrast with white text)
+TEXT_COLOR_LIGHT = "white"
+TEXT_COLOR_DARK = "black"
+
+# Fonts
+FONT_HEADER = ("Helvetica", 24, "bold")
+FONT_CONTROL_PANEL_TITLE = ("Helvetica", 18, "bold")
+FONT_BUTTON = ('Helvetica', 16, 'bold') # Will be primarily set in util2.py
+FONT_LABEL_STD = ("Helvetica", 14)
+FONT_ENTRY_STD = ("Helvetica", 14)
+
 class App:
     def __init__(self):
         self.main_window = tk.Tk()
         self.main_window.geometry("1200x600+300+80")
         self.main_window.title("Face Recognition App")
-        self.main_window.configure(bg="#2C3E50")
+        self.main_window.configure(bg=BG_COLOR_MAIN)
 
-        # Load the spoof detection model
-        self.spoof_model = load_model(r'C:\Users\ahala\OneDrive\Desktop\college\levl3 1\Work-based Professional Project in Cyber security(1)\last project\MobileNetFaceSpoof.h5')
+        # Get the absolute path to the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to the model file relative to this script's directory
+        model_path = os.path.join(script_dir, 'MobileNetFaceSpoof.h5')
+        self.spoof_model = load_model(model_path)
         self.spoof_threshold = 0.7  # Adjust threshold based on model's confidence level
 
         # Database connection setup
@@ -35,39 +55,40 @@ class App:
 
         # Header label
         header_label = tk.Label(
-            self.main_window, text="Face Recognition System", font=("Helvetica", 24, "bold"),
-            bg="#2C3E50", fg="white"
+            self.main_window, text="Face Recognition System", font=FONT_HEADER,
+            bg=BG_COLOR_MAIN, fg=TEXT_COLOR_LIGHT
         )
         header_label.place(x=50, y=10)
 
         # Main webcam frame
-        webcam_frame = tk.Frame(self.main_window, width=700, height=500, bg="white", bd=2, relief="sunken")
+        webcam_frame = tk.Frame(self.main_window, width=700, height=500, bg=BG_COLOR_WEBCAM_FRAME, bd=2, relief="sunken")
         webcam_frame.place(x=30, y=60)
         self.webcam_label = util2.get_img_label(webcam_frame)
         self.webcam_label.pack(fill="both", expand=True)
 
         # Control panel frame
-        control_frame = tk.Frame(self.main_window, bg="#34495E", bd=3, relief="ridge", width=300, height=450)
+        control_frame = tk.Frame(self.main_window, bg=BG_COLOR_CONTROL_PANEL, bd=3, relief="ridge", width=300, height=450)
         control_frame.place(x=780, y=60)
 
         # Title for control panel
         control_label = tk.Label(
-            control_frame, text="Control Panel", font=("Helvetica", 18, "bold"), bg="#34495E", fg="white"
+            control_frame, text="Control Panel", font=FONT_CONTROL_PANEL_TITLE, bg=BG_COLOR_CONTROL_PANEL, fg=TEXT_COLOR_LIGHT
         )
         control_label.pack(pady=20)
 
         # Buttons in control panel
-        self.login_button_main_window = util2.get_button(control_frame, 'Login', '#27AE60', self.login)
+        self.login_button_main_window = util2.get_button(control_frame, 'Login', BUTTON_COLOR_PRIMARY, self.login, fg=TEXT_COLOR_LIGHT)
         self.login_button_main_window.pack(pady=10, fill="x", padx=20)
 
-        self.logout_button_main_window = util2.get_button(control_frame, 'Logout', '#C0392B', self.logout)
+        self.logout_button_main_window = util2.get_button(control_frame, 'Logout', BUTTON_COLOR_SECONDARY, self.logout, fg=TEXT_COLOR_LIGHT)
         self.logout_button_main_window.pack(pady=10, fill="x", padx=20)
 
         self.register_new_user_button_main_window = util2.get_button(
-            control_frame, 'Register New User', '#7F8C8D', self.register_new_user, fg='black'
+            control_frame, 'Register New User', BUTTON_COLOR_TERTIARY, self.register_new_user, fg=TEXT_COLOR_LIGHT
         )
         self.register_new_user_button_main_window.pack(pady=10, fill="x", padx=20)
 
+        self.frame_counter = 0
         # Set up webcam
         self.add_webcam(self.webcam_label)
 
@@ -84,21 +105,23 @@ class App:
     def process_webcam(self):
         ret, frame = self.cap.read()
         if ret:
+            self.frame_counter += 1
             frame = cv2.flip(frame, 1)  # Flip frame to create a mirrored effect
             self.most_recent_capture_arr = frame
 
-            # Detect faces in the frame
-            face_locations = face_recognition.face_locations(frame)
-            for top, right, bottom, left in face_locations:
-                # Draw a rectangle around the detected face
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+            if self.frame_counter % 5 == 0:
+                # Detect faces in the frame
+                face_locations = face_recognition.face_locations(frame)
+                for top, right, bottom, left in face_locations:
+                    # Draw a rectangle around the detected face
+                    cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
 
-                # Crop the face image for spoof detection
-                face_image = frame[top:bottom, left:right]
+                    # Crop the face image for spoof detection
+                    face_image = frame[top:bottom, left:right]
 
-                # Detect if the face is real or fake
-                result, color = self.detect_real_or_fake(face_image)
-                cv2.putText(frame, f"Face: {result}", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+                    # Detect if the face is real or fake
+                    result, color = self.detect_real_or_fake(face_image)
+                    cv2.putText(frame, f"Face: {result}", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
             # Convert the frame to RGB and display it in the Tkinter label
             img_ = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -107,8 +130,8 @@ class App:
             self._label.imgtk = imgtk
             self._label.configure(image=imgtk)
 
-        # Repeat the process every 20 milliseconds
-        self._label.after(20, self.process_webcam)
+        # Repeat the process every 100 milliseconds
+        self._label.after(100, self.process_webcam)
 
     def detect_real_or_fake(self, face_image):
         """Detect if a face is real or fake using the spoof detection model."""
@@ -124,7 +147,7 @@ class App:
             prediction = self.spoof_model.predict(face_array)[0][0]  # Assuming the model outputs a single value
 
             # Debug: Print the prediction value
-            print(f"Prediction value: {prediction}")
+            # print(f"Prediction value: {prediction}")
 
             if prediction < self.spoof_threshold:
                 return "Real", (0, 255, 0)  # Green
@@ -224,7 +247,7 @@ class App:
         self.register_new_user_window = tk.Toplevel(self.main_window)
         self.register_new_user_window.geometry("800x400+370+120")
         self.register_new_user_window.title("Register New User")
-        self.register_new_user_window.configure(bg="#34495E")
+        self.register_new_user_window.configure(bg=BG_COLOR_CONTROL_PANEL)
 
         # Capture label
         self.capture_label = util2.get_img_label(self.register_new_user_window)
@@ -236,16 +259,16 @@ class App:
         self.entry_text_register_new_user.place(x=450, y=70, width=300, height=50)
 
         # Text label for entry
-        text_label = tk.Label(self.register_new_user_window, text="Please, input username:", font=("Helvetica", 14),
-                              bg="#34495E", fg="white")
+        text_label = tk.Label(self.register_new_user_window, text="Please, input username:", font=FONT_LABEL_STD,
+                              bg=BG_COLOR_CONTROL_PANEL, fg=TEXT_COLOR_LIGHT)
         text_label.place(x=450, y=30)
 
         # Accept and Try Again buttons
-        self.accept_button = util2.get_button(self.register_new_user_window, 'Accept', '#27AE60', self.accept_register_new_user)
+        self.accept_button = util2.get_button(self.register_new_user_window, 'Accept', BUTTON_COLOR_PRIMARY, self.accept_register_new_user, fg=TEXT_COLOR_LIGHT)
         self.accept_button.place(x=450, y=150)
 
-        self.try_again_button = util2.get_button(self.register_new_user_window, 'Try Again', '#C0392B', self.try_again_register_new_user)
-        self.try_again_button.place(x=450, y=250)
+        self.try_again_button = util2.get_button(self.register_new_user_window, 'Try Again', BUTTON_COLOR_SECONDARY, self.try_again_register_new_user, fg=TEXT_COLOR_LIGHT)
+        self.try_again_button.place(x=450, y=220)
 
     def start(self):
         self.main_window.mainloop()

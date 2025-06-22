@@ -17,7 +17,7 @@ def get_button(window, text, color, command, fg='white'):
                         command=command,
                         height=2,
                         width=20,
-                        font=('Helvetica bold', 20)
+                        font=('Helvetica', 16, 'bold')
                     )
 
     return button
@@ -31,14 +31,14 @@ def get_img_label(window):
 
 def get_text_label(window, text):
     label = tk.Label(window, text=text)
-    label.config(font=("sans-serif", 21), justify="left")
+    label.config(font=("Helvetica", 14), justify="left")
     return label
 
 
 def get_entry_text(window):
     inputtxt = tk.Text(window,
                        height=2,
-                       width=15, font=("Arial", 32))
+                       width=15, font=("Helvetica", 14))
     return inputtxt
 
 
