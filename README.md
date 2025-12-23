@@ -1,4 +1,4 @@
-# Face Recognition & Anti-Spoofing Detection
+## 🎭 Face Recognition & Anti-Spoofing Det
 
 A real-time face anti-spoofing detection system built with MobileNetV2 to distinguish between real faces and spoofed faces (photos, videos, etc.).
 
